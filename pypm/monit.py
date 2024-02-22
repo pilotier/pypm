@@ -6,9 +6,11 @@ import traceback
 
 from .__main__ import (process_cpu_command, process_mem_command,
                        process_pid_command, process_stderr_command,
-                       process_stdout_command, process_uptime_command)
+                       process_stdout_command, process_uptime_command,
+                       process_kill_command, process_start_command)
 from .units import Size, Time
 
+RATE = 0.1
 CTRL_Z = 26
 CTRL_C = 3
 K_UP = 450
@@ -71,30 +73,33 @@ class App:
             while not self._stop:
                 if len(self._processes) > 0:
                     keys = list(self._processes.keys())
-                    proc = keys[self._selected_proc]
-                    if time.time()-start > 1:
-                        mem = process_mem_command([proc], self._host, self._port)
-                        if mem is None:
-                            break
-                        cpu = process_cpu_command([proc], self._host, self._port)
-                        if cpu is None:
-                            break
-                        uptime = process_uptime_command([proc], self._host, self._port)
-                        if uptime is None:
-                            break
-                        pid = process_pid_command([proc], self._host, self._port)
-                        if pid is None:
-                            break
-                        stdout = process_stdout_command([proc], self._host, self._port)
-                        stderr = process_stderr_command([proc], self._host, self._port)
-                        self._processes[proc]["pid"] = pid[proc] if pid[proc] != -1 else "N/A"
-                        self._processes[proc]["uptime"] = uptime[proc]
-                        self._processes[proc]["mem"] = mem[proc]
-                        self._processes[proc]["cpu"] = str(cpu[proc])+"%"
-                        self._processes[proc]["logs"]["stdout"] = stdout
-                        self._processes[proc]["logs"]["stderr"] = stderr
+                    # proc = keys[self._selected_proc]
+                    if time.time()-start > RATE:
+                        for i in range(len(self._processes)):
+                            proc = keys[i]
+                            # if time.time()-start > RATE:
+                            mem = process_mem_command([proc], self._host, self._port)
+                            if mem is None:
+                                break
+                            cpu = process_cpu_command([proc], self._host, self._port)
+                            if cpu is None:
+                                break
+                            uptime = process_uptime_command([proc], self._host, self._port)
+                            if uptime is None:
+                                break
+                            pid = process_pid_command([proc], self._host, self._port)
+                            if pid is None:
+                                break
+                            stdout = process_stdout_command([proc], self._host, self._port)
+                            stderr = process_stderr_command([proc], self._host, self._port)
+                            self._processes[proc]["pid"] = pid[proc] if pid[proc] != -1 else "N/A"
+                            self._processes[proc]["uptime"] = uptime[proc]
+                            self._processes[proc]["mem"] = mem[proc]
+                            self._processes[proc]["cpu"] = str(cpu[proc])+"%"
+                            self._processes[proc]["logs"]["stdout"] = stdout
+                            self._processes[proc]["logs"]["stderr"] = stderr
                         start = time.time()
-                    self.schedule_update(["botright", "topright"])
+                    self.schedule_update(["botright", "topright", "topleft"])
         except Exception:
             traceback.print_exc()
             pass
@@ -153,6 +158,8 @@ class App:
         curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLUE)
         curses.init_pair(5, curses.COLOR_RED, curses.COLOR_BLACK)
         curses.init_pair(6, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(7, curses.COLOR_GREEN, curses.COLOR_BLUE)
+        curses.init_pair(8, curses.COLOR_RED, curses.COLOR_BLUE)
         
         self.WHITE = curses.color_pair(1)
         self.GREEN = curses.color_pair(2)
@@ -160,6 +167,8 @@ class App:
         self.SELECT = curses.color_pair(4)
         self.RED = curses.color_pair(5)
         self.YELLOW = curses.color_pair(6)
+        self.GREEN_SELECT = curses.color_pair(7)
+        self.RED_SELECT = curses.color_pair(8)
         return True
     
     def get_log_lines(self, ltype):
@@ -189,10 +198,13 @@ class App:
             if i-self._proc_offset >= max_y:
                 break
             proc = list(self._processes.keys())[i]
-            if i == self._selected_proc:
-                self._topleftwin.attron(self.SELECT)
-            self._topleftwin.addstr(2+i-self._proc_offset, 2, pad(proc, max_x))
-            self._topleftwin.attroff(self.SELECT)
+            # self._topleftwin.attron(self.SELECT)
+            if self._processes[proc]["pid"] != "N/A":
+                col = self.GREEN_SELECT if i == self._selected_proc else self.GREEN
+            else:
+                col = self.RED_SELECT if i == self._selected_proc else self.RED
+            self._topleftwin.addstr(2+i-self._proc_offset, 2, pad(proc, max_x), col) 
+            # self._topleftwin.attroff(self.SELECT)
         if len(self._processes) != self._proc_offset+max_y:
             if len(self._processes) > max_y:
                 self._topleftwin.attron(self.YELLOW)
@@ -352,6 +364,33 @@ class App:
                             if self._log_offset < 0:
                                 self._log_offset += 1
                                 self.schedule_update(["topright"])
+                elif char == ord('s'):
+                    keys = list(self._processes.keys())
+                    proc_name = keys[self._selected_proc]
+                    process_kill_command([proc_name], self._host, self._port)
+                    self.update_proc_offset()
+                    self.schedule_update(["topleft"])
+                    # self.schedule_update(["topleft"])
+                    # self.update_topleftwin()
+                elif char == ord('S'):
+                    keys = list(self._processes.keys())
+                    for proc_name in keys:
+                        process_kill_command([proc_name], self._host, self._port)
+                    # self.update_proc_offset()
+                    # self.schedule_update(["topleft"])
+                    # self.schedule_update(["topleft"])
+                    # self.update_topleftwin()
+                elif char == ord('r'):
+                    keys = list(self._processes.keys())
+                    proc_name = keys[self._selected_proc]
+                    process_start_command([proc_name], self._host, self._port)
+                elif char == ord('R'):
+                    keys = list(self._processes.keys())
+                    for proc_name in keys:
+                        process_start_command([proc_name], self._host, self._port)
+                    # self.schedule_update(["topleft"])
+                    # self.update_topleftwin()
+                    
                 
             if self._should_update["topleft"]:
                 self.update_topleftwin()

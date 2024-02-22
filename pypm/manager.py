@@ -431,6 +431,7 @@ class ProcessManager:
         return 60 / self.log_frequency
     
     def start(self):
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._socket.bind(("localhost", self.port))
         for process in self._processes:
             process.start(True)
@@ -464,6 +465,8 @@ class ProcessManager:
                         if process.active:
                             process.process_stdout()
                             process.process_stderr()
+                else:
+                    time.sleep(max(self.log_period - (time.time() - start), 0))
         except KeyboardInterrupt:    
             pass
         finally:

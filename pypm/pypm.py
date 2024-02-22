@@ -3,7 +3,7 @@ import sys
 from .manager import ProcessManager
 
 
-def main(port=8080, log_dir=None, log_freq=30):
+def main(port=8080, log_dir=None, log_freq=1):
     if log_dir == "None":
         log_dir = None
     pm = ProcessManager(port=port, log_dir=log_dir, log_frequency=log_freq)
