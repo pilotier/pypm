@@ -25,6 +25,7 @@ class ProcessManager:
         self._log_cpu = []
         self._log_memory = []
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._server_thread = None
         self._stop = False
         
@@ -431,7 +432,6 @@ class ProcessManager:
         return 60 / self.log_frequency
     
     def start(self):
-        self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._socket.bind(("localhost", self.port))
         for process in self._processes:
             process.start(True)

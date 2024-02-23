@@ -7,7 +7,8 @@ import traceback
 from .__main__ import (process_cpu_command, process_mem_command,
                        process_pid_command, process_stderr_command,
                        process_stdout_command, process_uptime_command,
-                       process_kill_command, process_start_command)
+                       process_kill_command, process_start_command,
+                       send_command)
 from .units import Size, Time
 
 RATE = 0.1
@@ -367,29 +368,19 @@ class App:
                 elif char == ord('s'):
                     keys = list(self._processes.keys())
                     proc_name = keys[self._selected_proc]
-                    process_kill_command([proc_name], self._host, self._port)
-                    self.update_proc_offset()
-                    self.schedule_update(["topleft"])
-                    # self.schedule_update(["topleft"])
-                    # self.update_topleftwin()
+                    send_command("killproc", [proc_name], self._host, self._port)
                 elif char == ord('S'):
                     keys = list(self._processes.keys())
                     for proc_name in keys:
-                        process_kill_command([proc_name], self._host, self._port)
-                    # self.update_proc_offset()
-                    # self.schedule_update(["topleft"])
-                    # self.schedule_update(["topleft"])
-                    # self.update_topleftwin()
+                        send_command("killproc", [proc_name], self._host, self._port)
                 elif char == ord('r'):
                     keys = list(self._processes.keys())
                     proc_name = keys[self._selected_proc]
-                    process_start_command([proc_name], self._host, self._port)
+                    send_command("startproc", [proc_name], self._host, self._port)
                 elif char == ord('R'):
                     keys = list(self._processes.keys())
                     for proc_name in keys:
-                        process_start_command([proc_name], self._host, self._port)
-                    # self.schedule_update(["topleft"])
-                    # self.update_topleftwin()
+                        send_command("startproc", [proc_name], self._host, self._port)
                     
                 
             if self._should_update["topleft"]:
